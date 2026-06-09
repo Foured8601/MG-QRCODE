@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>肌無力症臨床數據展示系統 | 雙和醫院肌無力中心</title>
+  <!-- SEO & Description -->
+  <meta name="description" content="雙和醫院肌無力中心 (MG Center) 專用臨床數據追蹤與 MG-ADL 歷史評估展示儀表板。字體清晰可調，老教授友善設計。">
+  
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Chart.js CDN for interactive trend visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons CDN for vector iconography -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- 密碼保護已停用（本機模式不需驗證） -->
+
+  <div class="app-wrapper">
+    <!-- ==========================================
+         左側邊欄 - 患者搜尋與列表
+         ========================================== -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-row">
+          <div class="brand">
+            <!-- Medical / Pulse Icon -->
+            <i data-lucide="activity" class="brand-icon" style="width: 28px; height: 28px;"></i>
+            <div>
+              <h1>MG登錄系統</h1>
+              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">PATIENT PORTAL</span>
+            </div>
+          </div>
+          
+          <!-- 無障礙工具列 (年長教授友善) -->
+          <div class="accessibility-bar" title="無障礙字體放大 / 主題切換">
+            <button id="btnRefreshData" class="btn-icon" aria-label="無痕重新整理" title="重新擷取並合併最新表單紀錄" style="color: var(--primary); border-color: rgba(99, 102, 241, 0.4); background-color: var(--primary-light);">
+              <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+            </button>
+            <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 4px;"></div>
+            <button id="btnFontDecrease" class="btn-icon" aria-label="縮小字體" title="縮小字體 (A-)">
+              <i data-lucide="minus" style="width: 16px; height: 16px;"></i>
+            </button>
+            <span id="fontSizeDisplay" class="font-size-indicator" title="目前字體比例">1.0x</span>
+            <button id="btnFontIncrease" class="btn-icon" aria-label="放大字體" title="放大字體 (A+)">
+              <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+            </button>
+
+          </div>
+        </div>
+
+        <!-- 搜尋與過濾 -->
+        <div class="search-filter-box">
+          <div class="search-input-wrapper">
+            <i data-lucide="search" class="search-icon" style="width: 18px; height: 18px;"></i>
+            <input type="text" id="patientSearchInput" class="search-input" placeholder="搜尋病患姓名、病歷號...">
+          </div>
+          <div class="filter-segmented-control" style="display: flex; background: var(--bg-input); border-radius: 8px; padding: 4px; margin-top: 12px; border: 1px solid var(--border-color);">
+            <button id="btnFilterToday" class="segment-btn active" style="flex: 1; padding: 6px; border-radius: 6px; border: none; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+              今日門診
+            </button>
+            <button id="btnFilterAll" class="segment-btn" style="flex: 1; padding: 6px; border-radius: 6px; border: none; background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+              全部名單
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 新增病患按鈕 -->
+      <div style="padding: 8px 12px 0;">
+        <button id="btnNewPatient" onclick="openNewPatientModal()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px; border-radius:8px; border:1.5px dashed var(--primary); background:var(--primary-light); color:var(--primary); font-size:13px; font-weight:700; cursor:pointer;">
+          <i data-lucide="user-plus" style="width:15px; height:15px;"></i> 新增病患
+        </button>
+      </div>
+
+      <!-- 患者卡片清單 (JS 動態填入) -->
+      <div class="patient-list" id="patientListContainer">
+        <!-- 載入中動畫 -->
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); gap: 12px;">
+          <i data-lucide="loader-2" style="animation: spin 1s linear infinite; width: 32px; height: 32px;"></i>
+          <p style="font-size: var(--font-sm);">正在讀取患者資料...</p>
+        </div>
+      </div>
+
+      <!-- 側邊欄底部：備份匯入出（Google 設定與本機 JSON 連結已隱藏） -->
+      <div class="sidebar-footer" style="display:flex; flex-direction:column; gap:8px; padding: 12px 16px;">
+        <!-- 隱藏：Google 試算表設定（本機模式不需要） -->
+        <button id="btnOpenConfigModal" class="btn-secondary-full" style="display:none; padding: 8px 12px; font-size: var(--font-xs);">
+          <i data-lucide="database" style="width: 14px; height: 14px;"></i>
+          <span>設定 Google 試算表連結</span>
+        </button>
+        <!-- 隱藏：本機 JSON 連結（iOS Safari 不支援 FSA，改用 localStorage） -->
+        <button id="btnConnectLocalDb" class="btn-secondary-full" style="display:none; width:100%; padding: 8px 12px; font-size: 12px;" title="連接本機的 local_data.json 以儲存編輯資料">
+          <i data-lucide="folder-open" style="width: 14px; height: 14px; flex-shrink:0;"></i>
+          <span id="txtLocalDbStatus" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">未連結本地存檔</span>
+        </button>
+        <div style="display:flex; gap:8px; width: 100%;">
+          <button id="btnExportJson" class="btn-secondary-full" style="flex:1; padding: 10px 8px; font-size: 13px;" title="將本機所有病患與隨訪紀錄備份為 JSON 檔案">
+            <i data-lucide="download" style="width: 15px; height: 15px;"></i>
+            <span>匯出備份</span>
+          </button>
+          <button id="btnImportTrigger" class="btn-secondary-full" style="flex:1; padding: 10px 8px; font-size: 13px;" title="從 JSON 檔案還原病患與隨訪紀錄">
+            <i data-lucide="upload" style="width: 15px; height: 15px;"></i>
+            <span>匯入備份</span>
+          </button>
+          <input type="file" id="fileImportJson" accept=".json" style="display:none;">
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================
+         右側主內容區 - 患者診斷資訊追蹤
+         ========================================== -->
+    <main class="main-viewport" id="mainViewport">
+      <!-- 狀態 1：未選取患者時的空白導覽狀態 (Default Empty State) -->
+      <div class="empty-view" id="emptyStateView">
+        <div class="empty-icon-box">
+          <i data-lucide="users" style="width: 48px; height: 48px; color: var(--primary);"></i>
+        </div>
+        <h2>歡迎使用 MG 臨床數據展示系統</h2>
+        <p>請點擊左側列表中的病患卡片，即可即時調閱該患者的初診基本資訊、歷次門診 MG-ADL 評估的詳細總分折線趨勢圖以及單項評估指標明細。</p>
+        <div class="alert-info-box" style="text-align: left; max-width: 500px; margin-top: 16px;">
+          <strong>提示：</strong> 目前系統正在加載精確的模擬病歷數據。您可以點擊左下角按鈕設定真實的 Google 表單與 Google 試算表連結，實現臨床病歷的即時雲端追蹤。
+        </div>
+      </div>
+
+      <!-- 狀態 2：點選患者後的綜合病歷面板 (Detail Panel) -->
+      <div class="detail-container" id="detailPanelView" style="display: none;">
+        <!-- 病患詳情頂部欄 (Header) -->
+        <div class="detail-header">
+          <div class="patient-profile-top">
+            <div class="patient-details-name">
+              <div class="name-row-top">
+                <h2 id="patientName">--</h2>
+                <span class="gender-age-tag" id="patientGenderAge">--</span>
+
+                <button id="btnEditPatient" class="btn-secondary-full" style="padding: 6px 12px; font-size: var(--font-xs); display: none; margin-left: 8px; color: var(--score-severe); white-space: nowrap; flex-shrink: 0; width: auto;">
+                  <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
+                  <span>編輯資料</span>
+                </button>
+              </div>
+              <div class="patient-quick-stats">
+                <span>病歷號：<strong id="patientChartId" class="chart-number-badge">--</strong></span>
+                <span>•</span>
+                <span id="patientContactPhone">電話：--</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 頂部臨床核心指標與新增隨訪按鈕 -->
+          <div style="display:flex; align-items:center; gap:16px; flex-shrink: 0;">
+            <div class="header-clinical-tags">
+              <div class="clinical-badge mgfa" title="MGFA 肌無力臨床分期">
+                <i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i>
+                <span>MGFA 期: <strong id="lblMgfaClass">--</strong></span>
+              </div>
+            </div>
+            
+            <button id="btnOpenFollowUpDrawer" class="btn-btn btn-confirm" style="display: flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+              <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
+              <span>門診隨訪登錄 (OPD Log)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 近期 Ach 抗體趨勢（橫列全寬） -->
+        <div id="achSummaryContainer" style="padding: 14px 24px; background: var(--bg-input); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap; flex-shrink: 0;">
+            <i data-lucide="activity" style="width:18px; height:18px; color: var(--primary);"></i>
+            <span style="font-size: 16px; font-weight: 800; color: var(--text-primary);">近期 Ach 抗體趨勢</span>
+          </div>
+          <div id="achSummaryList" style="display: flex; align-items: center; gap: 16px; font-size: 17px; font-weight: 700; color: var(--text-primary); flex-wrap: wrap;">
+            沒有近期的 Ach 資料
+          </div>
+        </div>
+
+        <!-- 詳情滾動區域 (雙欄版面佈局，完美善用電腦螢幕) -->
+        <div class="detail-content-scroller">
+          <div class="detail-grid">
+            
+            <!-- 左半欄 (中間區塊)：歷次填表詳細記錄 (時間軸卡片) -->
+            <div class="grid-col-left">
+              <div class="content-card">
+                <div class="card-title-row">
+                  <h3>
+                    <i data-lucide="calendar" class="card-title-icon" style="width: 20px; height: 20px;"></i>
+                    <span>回診評估與處方歷史紀錄明細</span>
+                  </h3>
+                  <span style="font-size: var(--font-xs); color: var(--text-muted); font-weight: 500;">點擊卡片展開隨訪明細</span>
+                </div>
+                
+                <!-- 時間軸列表 -->
+                <div class="timeline-list" id="evalTimelineList">
+                  <!-- JS 動態填入評估卡片 -->
+                </div>
+              </div>
+            </div>
+
+            <!-- 右半欄：趨勢折線圖 -->
+            <div class="grid-col-right">
+              <!-- MG-ADL 歷史評估趨勢圖 -->
+              <div class="content-card">
+                <div class="card-title-row">
+                  <h3>
+                    <i data-lucide="trending-down" class="card-title-icon" style="width: 20px; height: 20px;"></i>
+                    <span>MG-ADL 歷次評估總分趨勢</span>
+                  </h3>
+                  <span style="font-size: var(--font-xs); color: var(--text-muted); font-weight: 500;">X軸: 日期 | Y軸: 分數(越低越好)</span>
+                </div>
+                <div class="chart-container">
+                  <canvas id="mgAdlTrendChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ==========================================
+       右側滑出式門診隨訪登錄抽屜 (OPD Follow-up Drawer)
+       ========================================== -->
+  <div class="drawer-overlay" id="followUpDrawer">
+    <div class="drawer-container">
+      <div class="drawer-head">
+        <h3>門診隨訪病程與藥物處方登錄</h3>
+        <button id="btnCloseFollowUpDrawer" class="btn-icon" aria-label="關閉隨訪表單" style="border:none; background:transparent;">
+          <i data-lucide="x" style="width: 24px; height: 24px;"></i>
+        </button>
+      </div>
+      <div class="drawer-body">
+        <form id="followUpForm" onsubmit="event.preventDefault();">
+          
+          <!-- 基本資料與隨訪日期 -->
+          <div class="form-section-title">基本資料與隨訪日期</div>
+          <div class="drawer-form-row">
+            <div class="drawer-form-group">
+              <label>病患姓名</label>
+              <input type="text" id="drawerPatientName" class="modal-input" readonly style="background-color: var(--bg-app); cursor: not-allowed; font-weight: 700;">
+            </div>
+            <div class="drawer-form-group">
+              <label>病歷號</label>
+              <input type="text" id="drawerPatientChartId" class="modal-input" placeholder="可手動補填病歷號">
+            </div>
+            <div class="drawer-form-group">
+              <label>隨訪日期 *</label>
+              <input type="date" id="inputFollowUpDate" class="modal-input" required>
+            </div>
+          </div>
+
+          <!-- 抗體檢測 -->
+          <div class="form-section-title">肌無力抗體檢測 (隨訪更新)</div>
+          <div class="drawer-form-row">
+            <div class="drawer-form-group" style="flex: 1.2;">
+              <label>Ach 抗體檢驗日期</label>
+              <input type="text" id="inputAntibodyDate" class="modal-input" placeholder="年 / 月 / 日">
+            </div>
+            <div class="drawer-form-group" style="flex: 1;">
+              <label>Ach 抗體指數</label>
+              <input type="text" id="inputAntibodyIndex" class="modal-input" placeholder="例: 8.4">
+            </div>
+          </div>
+
+          <!-- 五大核心藥物治療快速勾選 -->
+          <div class="form-section-title">五大核心藥物快速勾選 (處方用量與頻次)</div>
+          
+          <!-- 藥物 1：大力丸 -->
+          <div class="drug-ticking-card">
+            <div class="drug-name-row">
+              <i data-lucide="pill" class="card-title-icon" style="color: var(--primary);"></i>
+              <strong>大力丸 (Mestinon) 60mg</strong>
+            </div>
+            <div class="ticking-group">
+              <label class="ticking-lbl">單次用量 (顆/每次) *</label>
+              <div class="chip-grid" id="chipGroupMestinonDose">
+                <div class="chip-choice active" data-value="0#">停藥 (0#)</div>
+                <div class="chip-choice" data-value="0.5#">0.5#</div>
+                <div class="chip-choice" data-value="1#">1#</div>
+                <div class="chip-choice" data-value="2#">2#</div>
+                <div class="chip-choice" data-value="3#">3#</div>
+              </div>
+            </div>
+            <div class="ticking-group">
+              <label class="ticking-lbl">服用頻次 (Frequency) *</label>
+              <div class="chip-grid freq-grid" id="chipGroupMestinonFreq">
+                <div class="chip-choice active" data-value="">無 (停藥)</div>
+                <div class="chip-choice" data-value="QD">QD</div>
+                <div class="chip-choice" data-value="QOD">QOD</div>
+                <div class="chip-choice" data-value="BID">BID</div>
+                <div class="chip-choice" data-value="TID">TID</div>
+                <div class="chip-choice" data-value="QID">QID</div>
+                <div class="chip-choice" data-value="Q3H">Q3H</div>
+                <div class="chip-choice" data-value="Q4H">Q4H</div>
+                <div class="chip-choice" data-value="Q6H">Q6H</div>
+                <div class="chip-choice" data-value="Q8H">Q8H</div>
+                <div class="chip-choice" data-value="Q12H">Q12H</div>
+                <div class="chip-choice" data-value="BIW">BIW</div>
+                <div class="chip-choice" data-value="QW">QW</div>
+                <div class="chip-choice" data-value="Q2W">Q2W</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 藥物 2：類固醇 -->
+          <div class="drug-ticking-card">
+            <div class="drug-name-row">
+              <i data-lucide="pill" class="card-title-icon" style="color: var(--primary);"></i>
+              <strong>類固醇 (Prednisolone) 5mg</strong>
+            </div>
+            <div class="drawer-form-row" style="margin-bottom: 8px;">
+              <div class="drawer-form-group">
+                <label style="font-size: var(--font-xs); color: var(--text-secondary);">主要單次用量 (顆/每次) *</label>
+                <input type="number" step="0.1" min="0" id="inputPrednisoloneDose" class="modal-input" placeholder="例: 2 (代表2顆)">
+              </div>
+              <div class="drawer-form-group">
+                <label style="font-size: var(--font-xs); color: var(--text-secondary);">QOD 第二劑量 (顆/每次)</label>
+                <input type="number" step="0.1" min="0" id="inputPrednisoloneDose2" class="modal-input" placeholder="隔日交替用量，例: 0.5">
+              </div>
+            </div>
+            <div class="ticking-group">
+              <label class="ticking-lbl">服用頻次 (Frequency) *</label>
+              <div class="chip-grid" id="chipGroupPrednisoloneFreq">
+                <div class="chip-choice active" data-value="">無 (停藥)</div>
+                <div class="chip-choice" data-value="QD">QD (每日一次)</div>
+                <div class="chip-choice" data-value="QOD">QOD (隔日一次)</div>
+                <div class="chip-choice" data-value="BID">BID (每日兩次)</div>
+                <div class="chip-choice" data-value="TID">TID</div>
+                <div class="chip-choice" data-value="QID">QID</div>
+                <div class="chip-choice" data-value="BIW">BIW (每週兩次)</div>
+                <div class="chip-choice" data-value="QW">QW (每週一次)</div>
+                <div class="chip-choice" data-value="Q2W">Q2W</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 藥物 3：移護寧 -->
+          <div class="drug-ticking-card">
+            <div class="drug-name-row">
+              <i data-lucide="pill" class="card-title-icon" style="color: var(--primary);"></i>
+              <strong>移護寧 (Imuran) 50mg</strong>
+            </div>
+            <div class="ticking-group">
+              <label class="ticking-lbl">單次用量 (顆/每次) *</label>
+              <div class="chip-grid" id="chipGroupImuranDose">
+                <div class="chip-choice active" data-value="0#">停藥 (0#)</div>
+                <div class="chip-choice" data-value="0.5#">0.5#</div>
+                <div class="chip-choice" data-value="1#">1#</div>
+                <div class="chip-choice" data-value="2#">2#</div>
+                <div class="chip-choice" data-value="3#">3#</div>
+              </div>
+            </div>
+            <div class="ticking-group">
+              <label class="ticking-lbl">服用頻次 (Frequency) *</label>
+              <div class="chip-grid" id="chipGroupImuranFreq">
+                <div class="chip-choice active" data-value="">無</div>
+                <div class="chip-choice" data-value="QD">QD</div>
+                <div class="chip-choice" data-value="QOD">QOD</div>
+                <div class="chip-choice" data-value="BID">BID</div>
+                <div class="chip-choice" data-value="TID">TID</div>
+                <div class="chip-choice" data-value="BIW">BIW</div>
+                <div class="chip-choice" data-value="QW">QW</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 藥物 4：普樂可復 -->
+          <div class="drug-ticking-card">
+            <div class="drug-name-row">
+              <i data-lucide="pill" class="card-title-icon" style="color: var(--primary);"></i>
+              <strong>普樂可復 (Tacrolimus) 1mg</strong>
+            </div>
+            <div class="ticking-group">
+              <label class="ticking-lbl">單次用量 (顆/每次) *</label>
+              <div class="chip-grid" id="chipGroupTacrolimusDose">
+                <div class="chip-choice active" data-value="0#">停藥 (0#)</div>
+                <div class="chip-choice" data-value="0.5#">0.5#</div>
+                <div class="chip-choice" data-value="1#">1#</div>
+                <div class="chip-choice" data-value="2#">2#</div>
+                <div class="chip-choice" data-value="3#">3#</div>
+              </div>
+            </div>
+            <div class="ticking-group">
+              <label class="ticking-lbl">服用頻次 (Frequency) *</label>
+              <div class="chip-grid" id="chipGroupTacrolimusFreq">
+                <div class="chip-choice active" data-value="">無</div>
+                <div class="chip-choice" data-value="QD">QD</div>
+                <div class="chip-choice" data-value="QOD">QOD</div>
+                <div class="chip-choice" data-value="BID">BID</div>
+                <div class="chip-choice" data-value="TID">TID</div>
+                <div class="chip-choice" data-value="BIW">BIW</div>
+                <div class="chip-choice" data-value="QW">QW</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 藥物 5：山喜多 -->
+          <div class="drug-ticking-card">
+            <div class="drug-name-row">
+              <i data-lucide="pill" class="card-title-icon" style="color: var(--primary);"></i>
+              <strong>山喜多 (Cellcept) 250mg</strong>
+            </div>
+            <div class="ticking-group">
+              <label class="ticking-lbl">單次用量 (顆/每次) *</label>
+              <div class="chip-grid" id="chipGroupCellceptDose">
+                <div class="chip-choice active" data-value="0#">停藥 (0#)</div>
+                <div class="chip-choice" data-value="0.5#">0.5#</div>
+                <div class="chip-choice" data-value="1#">1#</div>
+                <div class="chip-choice" data-value="2#">2#</div>
+                <div class="chip-choice" data-value="3#">3#</div>
+              </div>
+            </div>
+            <div class="ticking-group">
+              <label class="ticking-lbl">服用頻次 (Frequency) *</label>
+              <div class="chip-grid" id="chipGroupCellceptFreq">
+                <div class="chip-choice active" data-value="">無</div>
+                <div class="chip-choice" data-value="QD">QD</div>
+                <div class="chip-choice" data-value="QOD">QOD</div>
+                <div class="chip-choice" data-value="BID">BID</div>
+                <div class="chip-choice" data-value="TID">TID</div>
+                <div class="chip-choice" data-value="BIW">BIW</div>
+                <div class="chip-choice" data-value="QW">QW</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MGFA-PIS 介入後狀態（平鋪單選，11 個選項） -->
+          <div class="form-section-title">MGFA Post-intervention Status (MGFA-PIS)</div>
+          <div class="drawer-form-block">
+            <div class="chip-grid" id="chipGroupMgfaPis">
+              <div class="chip-choice" data-value="CSR">CSR (完全穩定緩解)</div>
+              <div class="chip-choice" data-value="PR">PR (藥物緩解)</div>
+              <div class="chip-choice" data-value="MM-0">MM-0 (微小症狀0)</div>
+              <div class="chip-choice" data-value="MM-1">MM-1 (微小症狀1)</div>
+              <div class="chip-choice" data-value="MM-2">MM-2 (微小症狀2)</div>
+              <div class="chip-choice" data-value="MM-3">MM-3 (微小症狀3)</div>
+              <div class="chip-choice" data-value="Improved">Improved (改善)</div>
+              <div class="chip-choice" data-value="Unchanged">Unchanged (無變動)</div>
+              <div class="chip-choice" data-value="Worse">Worse (惡化)</div>
+              <div class="chip-choice" data-value="Exacerbation">Exacerbation (急性發作)</div>
+              <div class="chip-choice" data-value="Died">Died of MG</div>
+            </div>
+          </div>
+
+          <!-- 當前 MGFA 臨床分期 -->
+          <div class="form-section-title">MGFA Clinical Classification (本次回診分期)</div>
+          <div class="drawer-form-block">
+            <div class="chip-grid" id="chipGroupDrawerMgfaClass">
+              <div class="chip-choice active" data-value="Class I">Class I</div>
+              <div class="chip-choice" data-value="Class IIa">Class IIa</div>
+              <div class="chip-choice" data-value="Class IIb">Class IIb</div>
+              <div class="chip-choice" data-value="Class IIIa">Class IIIa</div>
+              <div class="chip-choice" data-value="Class IIIb">Class IIIb</div>
+              <div class="chip-choice" data-value="Class IVa">Class IVa</div>
+              <div class="chip-choice" data-value="Class IVb">Class IVb</div>
+              <div class="chip-choice" data-value="Class V">Class V</div>
+            </div>
+          </div>
+
+          <!-- Drawer Actions -->
+          <div class="drawer-actions-panel">
+            <button type="button" id="btnCancelFollowUpDrawer" class="btn-btn btn-cancel">取消</button>
+            <button type="button" id="btnSaveFollowUpDrawer" class="btn-btn btn-confirm" style="flex:1;">儲存隨訪病歷</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       Google 試算表串接設定對話框 (Config Modal)
+       ========================================== -->
+  <div class="modal-mask" id="configModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>Google 表單與試算表數據串接設定</h3>
+        <button id="btnCloseConfigModal" class="btn-icon" aria-label="關閉" style="border:none; background:transparent;">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        
+        <!-- 操作步驟手冊 -->
+        <div style="background-color: var(--bg-input); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+          <h4 style="font-size: var(--font-sm); font-weight: 700; margin-bottom: 8px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="help-circle" style="width: 16px; height: 16px; color: var(--primary);"></i>
+            四步驟快速連接您的醫院資料：
+          </h4>
+          <ol style="margin-left: 20px; padding-left: 0; display: flex; flex-direction: column; gap: 6px;">
+            <li class="guide-step">在 Google 雲端硬碟建立兩份表單：<strong>「MG 初診建檔表」</strong>與<strong>「MG-ADL 評估表」</strong>。</li>
+            <li class="guide-step">將兩份表單的回應<strong>連結至同一份 Google 試算表 (Google Sheet)</strong>，這將會生成兩個不同的分頁（例如：「表單回應 1」與「表單回應 2」）。</li>
+            <li class="guide-step">點擊該試算表右上角的<strong>「共用」</strong>，將一般存取權設為<strong>「知道連結的人即可檢視」</strong>（此步驟極為關鍵，系統才能讀取數據）。</li>
+            <li class="guide-step">複製該試算表網址中的 <strong>ID 區段</strong>（介於 <code>/d/</code> 和 <code>/edit</code> 之間的一長串亂碼），並貼於下方欄位中。</li>
+          </ol>
+        </div>
+
+        <form id="configForm" onsubmit="event.preventDefault();">
+          <div class="form-group-block" style="margin-bottom: 16px;">
+            <label for="inputSheetId">Google 試算表 ID (Spreadsheet ID)</label>
+            <input type="text" id="inputSheetId" class="modal-input" placeholder="請貼上試算表 ID，例如: 1aBcDeFgH123456789...">
+            <span style="font-size: var(--font-xs); color: var(--text-muted);">留空並保存將會自動還原為內建的完美模擬測試數據。</span>
+          </div>
+
+          <div class="form-group-block" style="margin-bottom: 8px;">
+            <label for="inputInitialSheetName">「初診建檔」工作表名稱</label>
+            <input type="text" id="inputInitialSheetName" class="modal-input" value="MG 初診建檔表" placeholder="例如: MG 初診建檔表 或 表單回應 1">
+          </div>
+
+          <div class="form-group-block" style="margin-bottom: 8px;">
+            <label for="inputAdlSheetName">「MG-ADL 日常評估」工作表名稱</label>
+            <input type="text" id="inputAdlSheetName" class="modal-input" value="MG-ADL 日常評估與門診隨訪表" placeholder="例如: MG-ADL 日常評估與門診隨訪表 或 表單回應 2">
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" id="btnResetConfig" class="btn-btn btn-cancel" style="margin-right: auto; border-color: var(--score-severe); color: var(--score-severe);">
+              <i data-lucide="rotate-ccw" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>還原 Demo 數據
+            </button>
+            <button type="button" id="btnCancelConfig" class="btn-btn btn-cancel">取消</button>
+            <button type="button" id="btnSaveConfig" class="btn-btn btn-confirm">儲存並連接</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 保留隱藏元素供 app.js 讀寫初診資料（不顯示在畫面上） -->
+  <span id="initOnset" style="display:none;"></span>
+  <span id="initAntibody" style="display:none;"></span>
+  <span id="initAntibodyBaseline" style="display:none;"></span>
+  <span id="initMeds" style="display:none;"></span>
+  <span id="initThymusDetail" style="display:none;"></span>
+  <span id="initNotes" style="display:none;"></span>
+
+  <!-- 自訂確認框 (取代原生 confirm) -->
+  <div id="customConfirmMask" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; padding:28px 24px; max-width:360px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+      <p id="customConfirmMsg" style="font-size:15px; font-weight:600; color:#1e293b; margin:0 0 20px; line-height:1.6;"></p>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button id="customConfirmOk" style="padding:10px; border-radius:10px; border:none; background:#6366f1; color:#fff; font-size:14px; font-weight:700; cursor:pointer;"></button>
+        <button id="customConfirmCancel" style="padding:10px; border-radius:10px; border:1.5px solid #e2e8f0; background:#fff; color:#374151; font-size:14px; font-weight:600; cursor:pointer;"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript controller entry -->
+  <!-- ==========================================
+       編輯初診資料 Modal
+       ========================================== -->
+  <div class="modal-mask" id="editPatientModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3 id="editPatientModalTitle">編輯初診建檔資料</h3>
+        <button id="btnCloseEditPatient" class="btn-icon" style="background:transparent; border:none;">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <form id="editPatientForm" onsubmit="event.preventDefault();">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group-block">
+              <label>姓名</label>
+              <input type="text" id="editName" class="modal-input" required>
+            </div>
+            <div class="form-group-block">
+              <label>病歷號</label>
+              <input type="text" id="editChartId" class="modal-input" required>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group-block">
+              <label>性別</label>
+              <select id="editGender" class="modal-input">
+                <option value="男">男</option>
+                <option value="女">女</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div class="form-group-block">
+              <label>出生年月日 (YYYY-MM-DD 或 YYYY/MM/DD)</label>
+              <input type="text" id="editBirthdate" class="modal-input">
+            </div>
+          </div>
+          <div class="form-group-block" style="margin-bottom: 12px;">
+            <label>聯絡電話</label>
+            <input type="text" id="editPhone" class="modal-input">
+          </div>
+          <div class="form-group-block" style="margin-bottom: 12px;">
+            <label>MGFA 分期</label>
+            <input type="text" id="editMgfaClass" class="modal-input">
+          </div>
+          <div class="form-group-block" style="margin-bottom: 12px;">
+            <label>發病日期 / 首發症狀</label>
+            <textarea id="editOnset" class="modal-input" rows="2"></textarea>
+          </div>
+          <div class="form-group-block" style="margin-bottom: 12px;">
+            <label>抗體狀態 (血清型態，如 AChR+、MuSK+、Seroneg)</label>
+            <input type="text" id="editAntibody" class="modal-input">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group-block">
+              <label>Ach 抗體初始值 (初診時數值)</label>
+              <input type="text" id="editInitAntibodyIndex" class="modal-input">
+            </div>
+            <div class="form-group-block">
+              <label>Ach 抗體初次檢驗日期</label>
+              <input type="text" id="editInitAntibodyDate" class="modal-input">
+            </div>
+          </div>
+          <div class="form-group-block" style="margin-bottom: 12px;">
+            <label>目前用藥</label>
+            <textarea id="editMeds" class="modal-input" rows="2"></textarea>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group-block">
+              <label>胸腺手術紀錄</label>
+              <input type="text" id="editThymus" class="modal-input">
+            </div>
+            <div class="form-group-block">
+              <label>胸腺影像檢查</label>
+              <input type="text" id="editThymusImaging" class="modal-input">
+            </div>
+          </div>
+          <div class="form-group-block" style="margin-bottom: 12px;">
+            <label>備註 (包含轉診醫院等)</label>
+            <textarea id="editNotes" class="modal-input" rows="2"></textarea>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group-block">
+              <label>初次發病時的年紀</label>
+              <input type="text" id="editOnsetAge" class="modal-input">
+            </div>
+            <div class="form-group-block">
+              <label>至今危象次數</label>
+              <input type="text" id="editCrisisCount" class="modal-input">
+            </div>
+          </div>
+          <div class="form-group-block" style="margin-bottom: 12px;">
+            <label>初始症狀</label>
+            <textarea id="editOnsetSymptoms" class="modal-input" rows="2"></textarea>
+          </div>
+          <div class="form-group-block" style="margin-bottom: 12px;">
+            <label>曾使用過的藥物</label>
+            <textarea id="editPastMeds" class="modal-input" rows="2"></textarea>
+          </div>
+          <div class="form-group-block" style="margin-bottom: 12px;">
+            <label>曾接受過的肌無力檢查</label>
+            <textarea id="editDiagnosticTests" class="modal-input" rows="2"></textarea>
+          </div>
+
+          <div class="modal-actions" style="margin-top: 24px;">
+            <button type="button" id="btnDeletePatient" onclick="deletePatient()" style="margin-right:auto; padding:8px 16px; border-radius:8px; border:1.5px solid #fca5a5; background:#fff; color:#dc2626; font-size:13px; font-weight:700; cursor:pointer;">
+              🗑 刪除此病患
+            </button>
+            <button type="button" id="btnCancelEditPatient" class="btn-btn btn-cancel">取消</button>
+            <button type="submit" id="btnConfirmEditPatient" class="btn-btn btn-confirm">儲存並寫入本地端</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="mockData.js"></script>
+  <script src="app.js"></script>
+  <script>
+    // Initialize vector icon representations
+    lucide.createIcons();
+  </script>
+</body>
+</html>
