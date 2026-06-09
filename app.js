@@ -1407,6 +1407,17 @@ function initChipGroups() {
         const mmGroup = document.getElementById('mmValueSubGroup');
         if (mmGroup) mmGroup.style.display = chip.dataset.value === 'MM' ? 'block' : 'none';
       }
+
+      // 若為 ADL 評分項目，即時計算總分
+      if (grid.dataset.adl === 'true') {
+        let sum = 0;
+        document.querySelectorAll('.adl-chip-grid').forEach(adlGrid => {
+          const active = adlGrid.querySelector('.chip-choice.active');
+          if (active) sum += parseInt(active.dataset.value || 0);
+        });
+        const totalSpan = document.getElementById('drawerAdlTotal');
+        if (totalSpan) totalSpan.textContent = sum;
+      }
     });
   });
 }
@@ -1441,6 +1452,12 @@ function openFollowUpDrawer() {
   });
   const mmGroup = document.getElementById('mmValueSubGroup');
   if (mmGroup) mmGroup.style.display = 'none';
+
+  // 重置 ADL 總分與備註
+  const totalSpan = document.getElementById('drawerAdlTotal');
+  if (totalSpan) totalSpan.textContent = '0';
+  const notesInput = document.getElementById('inputFollowUpNotes');
+  if (notesInput) notesInput.value = '';
 
   DOM.followUpDrawer.classList.add('open');
 }
@@ -1501,19 +1518,32 @@ async function saveFollowUpRecord() {
 
   const patient = globalPatients.find(p => p.chartId === activePatientId);
 
+  const q1 = parseInt(getActiveChipValue('drawerAdlQ1') || 0);
+  const q2 = parseInt(getActiveChipValue('drawerAdlQ2') || 0);
+  const q3 = parseInt(getActiveChipValue('drawerAdlQ3') || 0);
+  const q4 = parseInt(getActiveChipValue('drawerAdlQ4') || 0);
+  const q5 = parseInt(getActiveChipValue('drawerAdlQ5') || 0);
+  const q6 = parseInt(getActiveChipValue('drawerAdlQ6') || 0);
+  const q7 = parseInt(getActiveChipValue('drawerAdlQ7') || 0);
+  const q8 = parseInt(getActiveChipValue('drawerAdlQ8') || 0);
+  const totalScore = q1 + q2 + q3 + q4 + q5 + q6 + q7 + q8;
+
+  const notes = document.getElementById('inputFollowUpNotes').value.trim();
+
   const newVisit = {
     chartId: activePatientId,
     timestamp: followUpDate,
     evaluator: '門診教授',
-    totalScore: 0,
-    details: { q1_talking: 0, q2_chewing: 0, q3_swallowing: 0, q4_breathing: 0, q5_brushing: 0, q6_arising: 0, q7_doublevision: 0, q8_eyeliddroop: 0 },
+    totalScore: totalScore,
+    details: { q1_talking: q1, q2_chewing: q2, q3_swallowing: q3, q4_breathing: q4, q5_brushing: q5, q6_arising: q6, q7_doublevision: q7, q8_eyeliddroop: q8 },
     patientName: patient ? patient.name : '',
     patientBirthdate: patient ? (patient.birthdate || '') : '',
     antibodyDate: DOM.inputAntibodyDate.value.trim(),
     antibodyIndex: DOM.inputAntibodyIndex.value.trim(),
     medications,
     mgfaPis,
-    mgfaClass: newMgfaClass
+    mgfaClass: newMgfaClass,
+    notes: notes
   };
 
   // 更新病患 override（MGFA 分期、處方摘要）

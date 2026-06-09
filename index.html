@@ -29,7 +29,10 @@
             <!-- Medical / Pulse Icon -->
             <i data-lucide="activity" class="brand-icon" style="width: 28px; height: 28px;"></i>
             <div>
-              <h1>MG登錄系統</h1>
+              <h1 style="display:flex; align-items:center; gap:8px;">
+                MG登錄系統
+                <span style="font-size:12px; background:var(--primary); color:#fff; padding:2px 8px; border-radius:6px; letter-spacing:1px;">行動版</span>
+              </h1>
               <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">PATIENT PORTAL</span>
             </div>
           </div>
@@ -458,6 +461,108 @@
               <div class="chip-choice" data-value="Class IVb">Class IVb</div>
               <div class="chip-choice" data-value="Class V">Class V</div>
             </div>
+          </div>
+
+          <!-- MG-ADL 現場評估（教授直接點選 0-3 分） -->
+          <div class="form-section-title">MG-ADL 現場評估 (教授評分，0 分最好 / 3 分最差)</div>
+
+          <!-- ADL 總分顯示 -->
+          <div style="display:flex; align-items:center; justify-content:space-between; background:var(--primary-light); border-radius:var(--radius-md); padding:10px 16px; border:1px solid rgba(99,102,241,0.25);">
+            <span style="font-size:var(--font-sm); font-weight:700; color:var(--primary);">MG-ADL 總分（滿分 24）</span>
+            <span id="drawerAdlTotal" style="font-size:28px; font-weight:800; color:var(--primary);">0</span>
+          </div>
+
+          <!-- 8 項評估 chip 選擇 -->
+          <div style="display:flex; flex-direction:column; gap:10px;">
+
+            <div class="adl-score-row">
+              <div class="adl-score-label">1. 說話功能</div>
+              <div class="chip-grid adl-chip-grid" id="drawerAdlQ1" data-adl="true">
+                <div class="chip-choice active" data-value="0">0 正常</div>
+                <div class="chip-choice" data-value="1">1 輕微</div>
+                <div class="chip-choice" data-value="2">2 明顯</div>
+                <div class="chip-choice" data-value="3">3 嚴重</div>
+              </div>
+            </div>
+
+            <div class="adl-score-row">
+              <div class="adl-score-label">2. 咀嚼功能</div>
+              <div class="chip-grid adl-chip-grid" id="drawerAdlQ2" data-adl="true">
+                <div class="chip-choice active" data-value="0">0 正常</div>
+                <div class="chip-choice" data-value="1">1 輕微</div>
+                <div class="chip-choice" data-value="2">2 明顯</div>
+                <div class="chip-choice" data-value="3">3 嚴重</div>
+              </div>
+            </div>
+
+            <div class="adl-score-row">
+              <div class="adl-score-label">3. 吞嚥功能</div>
+              <div class="chip-grid adl-chip-grid" id="drawerAdlQ3" data-adl="true">
+                <div class="chip-choice active" data-value="0">0 正常</div>
+                <div class="chip-choice" data-value="1">1 輕微</div>
+                <div class="chip-choice" data-value="2">2 明顯</div>
+                <div class="chip-choice" data-value="3">3 嚴重</div>
+              </div>
+            </div>
+
+            <div class="adl-score-row">
+              <div class="adl-score-label">4. 呼吸功能</div>
+              <div class="chip-grid adl-chip-grid" id="drawerAdlQ4" data-adl="true">
+                <div class="chip-choice active" data-value="0">0 正常</div>
+                <div class="chip-choice" data-value="1">1 活動喘</div>
+                <div class="chip-choice" data-value="2">2 休息喘</div>
+                <div class="chip-choice" data-value="3">3 需呼吸器</div>
+              </div>
+            </div>
+
+            <div class="adl-score-row">
+              <div class="adl-score-label">5. 梳頭／刷牙</div>
+              <div class="chip-grid adl-chip-grid" id="drawerAdlQ5" data-adl="true">
+                <div class="chip-choice active" data-value="0">0 正常</div>
+                <div class="chip-choice" data-value="1">1 易疲累</div>
+                <div class="chip-choice" data-value="2">2 需協助</div>
+                <div class="chip-choice" data-value="3">3 無法完成</div>
+              </div>
+            </div>
+
+            <div class="adl-score-row">
+              <div class="adl-score-label">6. 起立功能</div>
+              <div class="chip-grid adl-chip-grid" id="drawerAdlQ6" data-adl="true">
+                <div class="chip-choice active" data-value="0">0 正常</div>
+                <div class="chip-choice" data-value="1">1 稍吃力</div>
+                <div class="chip-choice" data-value="2">2 需扶持</div>
+                <div class="chip-choice" data-value="3">3 無法站立</div>
+              </div>
+            </div>
+
+            <div class="adl-score-row">
+              <div class="adl-score-label">7. 複視症狀</div>
+              <div class="chip-grid adl-chip-grid" id="drawerAdlQ7" data-adl="true">
+                <div class="chip-choice active" data-value="0">0 無</div>
+                <div class="chip-choice" data-value="1">1 偶爾</div>
+                <div class="chip-choice" data-value="2">2 每日非持續</div>
+                <div class="chip-choice" data-value="3">3 持續整天</div>
+              </div>
+            </div>
+
+            <div class="adl-score-row">
+              <div class="adl-score-label">8. 眼皮下垂</div>
+              <div class="chip-grid adl-chip-grid" id="drawerAdlQ8" data-adl="true">
+                <div class="chip-choice active" data-value="0">0 無</div>
+                <div class="chip-choice" data-value="1">1 偶爾</div>
+                <div class="chip-choice" data-value="2">2 每日非持續</div>
+                <div class="chip-choice" data-value="3">3 持續遮擋視線</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 備註欄位 -->
+          <div class="form-section-title">備註（自由填寫）</div>
+          <div class="drawer-form-block">
+            <textarea id="inputFollowUpNotes" class="modal-input" rows="3"
+              style="resize:vertical; min-height:80px; font-size:var(--font-sm); line-height:1.6;"
+              placeholder="可填寫本次觀察、特殊狀況、轉介計畫等..."></textarea>
           </div>
 
           <!-- Drawer Actions -->

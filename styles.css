@@ -1267,6 +1267,35 @@ body {
   margin-top: 12px;
   flex-shrink: 0;
 }
+/* ADL 評分列（drawer 內） */
+.adl-score-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+}
+
+.adl-score-label {
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.adl-chip-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+@media (pointer: coarse) {
+  .adl-chip-grid .chip-choice {
+    min-height: 52px;
+    font-size: var(--font-sm);
+  }
+}
 
 /* ==========================================================================
    平板觸控優化 (iPad / Touch Device Friendly)
