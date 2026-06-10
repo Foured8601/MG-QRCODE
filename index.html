@@ -18,11 +18,14 @@
 
   <!-- 密碼保護已停用（本機模式不需驗證） -->
 
+  <!-- 直立模式：點擊遮罩關閉側欄 -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebarMobile()"></div>
+
   <div class="app-wrapper">
     <!-- ==========================================
          左側邊欄 - 患者搜尋與列表
          ========================================== -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="mainSidebar">
       <div class="sidebar-header">
         <div class="brand-row">
           <div class="brand">
@@ -117,6 +120,11 @@
          右側主內容區 - 患者診斷資訊追蹤
          ========================================== -->
     <main class="main-viewport" id="mainViewport">
+      <!-- 直立模式漢堡選單按鈕（窄螢幕才顯示） -->
+      <button class="sidebar-toggle-btn" id="btnSidebarToggle" onclick="openSidebarMobile()" aria-label="開啟病患列表">
+        <i data-lucide="menu" style="width:22px; height:22px;"></i>
+        <span>病患列表</span>
+      </button>
       <!-- 狀態 1：未選取患者時的空白導覽狀態 (Default Empty State) -->
       <div class="empty-view" id="emptyStateView">
         <div class="empty-icon-box">

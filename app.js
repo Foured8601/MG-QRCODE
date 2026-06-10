@@ -731,6 +731,26 @@ function formatDateString(rawDateStr) {
   } catch (e) { return String(rawDateStr).split(' ')[0]; }
 }
 
+// 直立模式：展開 / 收合 ADL 詳細卡片
+function toggleAdlGrid(detailId, btn) {
+  const detail = document.getElementById(detailId);
+  if (!detail) return;
+  const grid = detail.querySelector('.adl-cards-grid');
+  if (!grid) return;
+  const expanded = grid.classList.toggle('adl-expanded');
+  if (btn) btn.textContent = expanded ? '▲ 收合評估' : '▼ 展開評估';
+}
+
+// 直立模式：側欄開關（漢堡選單）
+function openSidebarMobile() {
+  document.getElementById('mainSidebar')?.classList.add('sidebar-open');
+  document.getElementById('sidebarOverlay')?.classList.add('active');
+}
+function closeSidebarMobile() {
+  document.getElementById('mainSidebar')?.classList.remove('sidebar-open');
+  document.getElementById('sidebarOverlay')?.classList.remove('active');
+}
+
 function showSidebarLoading() {
   DOM.patientListContainer.innerHTML = `<div style="text-align:center; padding: 20px;">資料載入中...</div>`;
 }
@@ -743,6 +763,8 @@ function showEmptyState() {
 function selectPatient(chartId) {
   activePatientId = chartId;
   document.querySelectorAll('.patient-card').forEach(card => card.classList.toggle('active', card.getAttribute('data-id') === chartId));
+  // 直立模式下選取病患後自動收合側欄
+  if (window.innerWidth < 768) closeSidebarMobile();
   const patient = globalPatients.find(p => p.chartId === chartId);
   if (!patient) return;
   DOM.emptyStateView.style.display = 'none';
@@ -896,17 +918,35 @@ function renderTimeline(patient) {
         </div>`;
     };
     const allMetrics = Object.entries(MG_ADL_METRICS);
-    // ── MG-ADL 總分摘要橫幅 ──
+
+    // ── MG-ADL 總分摘要橫幅（含直立模式展開按鈕）──
     const severityLabel = primary.totalScore >= 15 ? '重度' : primary.totalScore >= 8 ? '中度' : primary.totalScore >= 3 ? '輕度' : '正常';
     const mgScoreBannerHtml = hasAdl ? `
-      <div style="display:flex; align-items:center; gap:12px; background:var(--primary-light); border:1px solid rgba(99,102,241,0.25); border-radius:12px; padding:10px 16px; margin-bottom:12px;">
+      <div style="display:flex; align-items:center; gap:12px; background:var(--primary-light); border:1px solid rgba(99,102,241,0.25); border-radius:12px; padding:10px 16px; margin-bottom:12px; flex-wrap:wrap;">
         <span style="font-size:13px; font-weight:700; color:var(--primary);">MG-ADL 總分</span>
         <span style="background:${scoreColor}; color:#fff; padding:3px 16px; border-radius:12px; font-size:18px; font-weight:800;">${primary.totalScore} / 24</span>
         <span style="font-size:13px; color:var(--text-muted); font-weight:600;">${severityLabel}</span>
+        <button class="adl-detail-toggle" onclick="toggleAdlGrid('${detailId}', this)">▼ 展開評估</button>
       </div>` : '';
 
+    // ── 直立模式：緊湊列表（每題一列，badge + 名稱 + 描述）──
+    const makeCompactItem = ([key, metric], idx) => {
+      const score = primary.details?.[key] ?? 0;
+      const bg = score >= 3 ? '#ff4d4f' : score >= 2 ? '#fa8c16' : score >= 1 ? '#faad14' : '#52c41a';
+      return `<div class="adl-compact-item">
+        <span style="width:24px;height:24px;border-radius:50%;background:${bg};color:#fff;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">${score}</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text-primary);flex:1;">${idx+1}. ${metric.name}</span>
+        <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">${metric.labels[score] || score}</span>
+      </div>`;
+    };
+    const adlCompactHtml = hasAdl ? `
+      <div class="adl-compact-grid" ${hasMed ? 'style="margin-top:8px;"' : ''}>
+        ${allMetrics.map((m, i) => makeCompactItem(m, i)).join('')}
+      </div>` : '';
+
+    // ── 全尺寸 ADL 卡片（橫向預設顯示；直立模式預設隱藏，展開後顯示）──
     const adlCardsHtml = hasAdl ? `
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:start; ${hasMed ? 'margin-top:12px;' : ''}">
+      <div class="adl-cards-grid" ${hasMed ? 'style="margin-top:12px;"' : ''}>
         <div style="display:flex; flex-direction:column; gap:10px;">${allMetrics.slice(0,4).map(makeAdlCard).join('')}</div>
         <div style="display:flex; flex-direction:column; gap:10px;">${allMetrics.slice(4,8).map(makeAdlCard).join('')}</div>
       </div>` : '';
@@ -968,6 +1008,7 @@ function renderTimeline(patient) {
       </div>
       <div id="${detailId}" style="display:${isTodayCard ? 'block' : 'none'}; padding:16px; background:var(--bg-app);">
         ${mgScoreBannerHtml}
+        ${adlCompactHtml}
         ${adlCardsHtml}
         ${opdBlockHtml}
         ${primary.notes ? `
