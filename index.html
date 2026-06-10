@@ -2,7 +2,7 @@
 <html lang="zh-TW" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>肌無力症臨床數據展示系統 | 雙和醫院肌無力中心</title>
   <!-- SEO & Description -->
   <meta name="description" content="雙和醫院肌無力中心 (MG Center) 專用臨床數據追蹤與 MG-ADL 歷史評估展示儀表板。字體清晰可調，老教授友善設計。">
@@ -565,12 +565,12 @@
               placeholder="可填寫本次觀察、特殊狀況、轉介計畫等..."></textarea>
           </div>
 
-          <!-- Drawer Actions -->
-          <div class="drawer-actions-panel">
-            <button type="button" id="btnCancelFollowUpDrawer" class="btn-btn btn-cancel">取消</button>
-            <button type="button" id="btnSaveFollowUpDrawer" class="btn-btn btn-confirm" style="flex:1;">儲存隨訪病歷</button>
-          </div>
         </form>
+      </div>
+      <!-- 儲存/取消按鈕固定在抽屜底部，不隨表單捲動 -->
+      <div class="drawer-actions-panel">
+        <button type="button" id="btnCancelFollowUpDrawer" class="btn-btn btn-cancel">取消</button>
+        <button type="button" id="btnSaveFollowUpDrawer" class="btn-btn btn-confirm" style="flex:1;">儲存隨訪病歷</button>
       </div>
     </div>
   </div>
