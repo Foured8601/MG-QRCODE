@@ -46,7 +46,6 @@ const DOM = {
   patientGenderAge: document.getElementById('patientGenderAge'),
   patientChartId: document.getElementById('patientChartId'),
   patientContactPhone: document.getElementById('patientContactPhone'),
-  lblMgfaClass: document.getElementById('lblMgfaClass'),
   btnEditPatient: document.getElementById('btnEditPatient'),
   
   // 初診病史
@@ -589,7 +588,9 @@ function processAndRenderData(initials, adls) {
       }
       normalizedAdls[index].evaluator = "患者本人與門診教授";
     } else {
-      normalizedAdls.push({ ...cv, _opdOnly: true });
+      // 若 customVisit 有實際 ADL 評分，視為表單記錄（非純OPD）；否則標記為純OPD
+      const hasAdlData = cv.totalScore > 0 || Object.values(cv.details || {}).some(v => v > 0);
+      normalizedAdls.push({ ...cv, _opdOnly: !hasAdlData });
     }
   });
 
@@ -648,6 +649,7 @@ function processAndRenderData(initials, adls) {
       thymusImaging:     o.thymusImaging     || '',
       pastMedications:   o.pastMedications   || '',
       diagnosticTests:   o.diagnosticTests   || '',
+      registrationDate:  o.registrationDate  || '',
     }));
   });
 
@@ -749,7 +751,6 @@ function selectPatient(chartId) {
   DOM.patientGenderAge.textContent = `${patient.gender || '--'} | ${patient.age} 歲`;
   DOM.patientChartId.textContent = patient.rawChartId || '';
   DOM.patientContactPhone.textContent = `電話：${patient.phone || '--'}`;
-  DOM.lblMgfaClass.textContent = patient.mgfaClass || '--';
   DOM.initOnset.textContent = patient.onsetKeywords || '無';
   DOM.initAntibody.textContent = patient.antibodyStatus || '無';
   DOM.initMeds.textContent = patient.medications || '無';
@@ -895,8 +896,17 @@ function renderTimeline(patient) {
         </div>`;
     };
     const allMetrics = Object.entries(MG_ADL_METRICS);
+    // ── MG-ADL 總分摘要橫幅 ──
+    const severityLabel = primary.totalScore >= 15 ? '重度' : primary.totalScore >= 8 ? '中度' : primary.totalScore >= 3 ? '輕度' : '正常';
+    const mgScoreBannerHtml = hasAdl ? `
+      <div style="display:flex; align-items:center; gap:12px; background:var(--primary-light); border:1px solid rgba(99,102,241,0.25); border-radius:12px; padding:10px 16px; margin-bottom:12px;">
+        <span style="font-size:13px; font-weight:700; color:var(--primary);">MG-ADL 總分</span>
+        <span style="background:${scoreColor}; color:#fff; padding:3px 16px; border-radius:12px; font-size:18px; font-weight:800;">${primary.totalScore} / 24</span>
+        <span style="font-size:13px; color:var(--text-muted); font-weight:600;">${severityLabel}</span>
+      </div>` : '';
+
     const adlCardsHtml = hasAdl ? `
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:start; ${hasMed ? 'margin-top:16px;' : ''}">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:start; ${hasMed ? 'margin-top:12px;' : ''}">
         <div style="display:flex; flex-direction:column; gap:10px;">${allMetrics.slice(0,4).map(makeAdlCard).join('')}</div>
         <div style="display:flex; flex-direction:column; gap:10px;">${allMetrics.slice(4,8).map(makeAdlCard).join('')}</div>
       </div>` : '';
@@ -914,7 +924,7 @@ function renderTimeline(patient) {
         <div style="display:flex; align-items:center; gap:8px; color:#6366f1; font-weight:700; font-size:14px; margin-bottom:12px; padding-bottom:10px; border-bottom:1px dashed #c4b5fd;">
           <i data-lucide="stethoscope" style="width:16px; height:16px;"></i>
           門診處方與當前回診評估
-          ${isOpdOnly ? `<button onclick="deleteCustomVisit('${primary.chartId}', '${primary.timestamp}')" style="margin-left:auto; background:none; border:none; cursor:pointer; color:#ef4444; font-size:12px; font-weight:600; padding:2px 8px; border-radius:6px; border:1px solid #fca5a5;" title="刪除此筆本機紀錄">✕ 刪除</button>` : ''}
+          ${!!opdEntry ? `<button onclick="deleteCustomVisit('${primary.chartId}', '${primary.timestamp}')" style="margin-left:auto; background:none; border:none; cursor:pointer; color:#ef4444; font-size:12px; font-weight:600; padding:2px 8px; border-radius:6px; border:1px solid #fca5a5;" title="刪除此筆本機紀錄">✕ 刪除</button>` : ''}
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;">
           <div>
@@ -957,8 +967,17 @@ function renderTimeline(patient) {
         </div>
       </div>
       <div id="${detailId}" style="display:${isTodayCard ? 'block' : 'none'}; padding:16px; background:var(--bg-app);">
-        ${opdBlockHtml}
+        ${mgScoreBannerHtml}
         ${adlCardsHtml}
+        ${opdBlockHtml}
+        ${primary.notes ? `
+        <div style="margin-top:12px; background:#fafafa; border:1px solid var(--border-color); border-radius:10px; padding:10px 14px; display:flex; gap:8px; align-items:flex-start;">
+          <i data-lucide="notebook-pen" style="width:14px; height:14px; color:var(--text-muted); flex-shrink:0; margin-top:2px;"></i>
+          <div>
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">備註</div>
+            <div style="font-size:13px; color:var(--text-primary); line-height:1.6; white-space:pre-wrap;">${primary.notes}</div>
+          </div>
+        </div>` : ''}
       </div>
     `;
     list.appendChild(card);
@@ -1362,6 +1381,7 @@ async function saveEditPatient() {
       if (!confirm(`「${key}」已存在，要覆蓋嗎？`)) return;
     }
     data._localPatient = true;  // 標記為純本地建立的病患
+    data.registrationDate = new Date().toISOString(); // 記錄建檔時間，讓今日門診可顯示
     localOverrides[key] = data;
   } else {
     if (!activePatientId) return;
@@ -1446,9 +1466,18 @@ function openFollowUpDrawer() {
   DOM.inputPrednisoloneDose.value = '';
   DOM.inputPrednisoloneDose2.value = '';
 
-  // 重置所有 chip 為第一個 (預設)
+  // 重置 chip：藥物類 → 第一個（停藥/無）；MGFA 分期、PIS、ADL → 不設預設，避免誤送出
+  const noDefaultGridIds = new Set([
+    'chipGroupMgfaPis', 'chipGroupDrawerMgfaClass',
+    'drawerAdlQ1','drawerAdlQ2','drawerAdlQ3','drawerAdlQ4',
+    'drawerAdlQ5','drawerAdlQ6','drawerAdlQ7','drawerAdlQ8'
+  ]);
   document.querySelectorAll('.chip-grid').forEach(grid => {
-    grid.querySelectorAll('.chip-choice').forEach((c, i) => c.classList.toggle('active', i === 0));
+    if (noDefaultGridIds.has(grid.id)) {
+      grid.querySelectorAll('.chip-choice').forEach(c => c.classList.remove('active'));
+    } else {
+      grid.querySelectorAll('.chip-choice').forEach((c, i) => c.classList.toggle('active', i === 0));
+    }
   });
   const mmGroup = document.getElementById('mmValueSubGroup');
   if (mmGroup) mmGroup.style.display = 'none';
@@ -1459,11 +1488,75 @@ function openFollowUpDrawer() {
   const notesInput = document.getElementById('inputFollowUpNotes');
   if (notesInput) notesInput.value = '';
 
+  // ── 若當天已有記錄，自動帶入（方便教授修改錯誤） ──
+  const todayDate = DOM.inputFollowUpDate.value;
+  const allVisits = JSON.parse(localStorage.getItem('mg_custom_visits') || '[]');
+  const existing = allVisits.find(cv =>
+    cv.chartId === activePatientId && normalizeDate(cv.timestamp) === normalizeDate(todayDate)
+  );
+  if (existing) prefillFollowUpForm(existing);
+
   DOM.followUpDrawer.classList.add('open');
 }
 
 function closeFollowUpDrawer() {
   DOM.followUpDrawer.classList.remove('open');
+}
+
+// 設定指定 chip-grid 的 active 值
+function setActiveChip(gridId, value) {
+  const grid = document.getElementById(gridId);
+  if (!grid || value === undefined || value === null) return;
+  grid.querySelectorAll('.chip-choice').forEach(c => c.classList.remove('active'));
+  const chip = grid.querySelector(`[data-value="${value}"]`);
+  if (chip) chip.classList.add('active');
+}
+
+// 以已存記錄預填表單（當天重新開啟時方便修改）
+function prefillFollowUpForm(cv) {
+  // ADL 8 題
+  const adlKeys = ['q1_talking','q2_chewing','q3_swallowing','q4_breathing','q5_brushing','q6_arising','q7_doublevision','q8_eyeliddroop'];
+  adlKeys.forEach((key, i) => {
+    const val = cv.details?.[key] ?? 0;
+    const grid = document.getElementById(`drawerAdlQ${i + 1}`);
+    if (!grid) return;
+    grid.querySelectorAll('.chip-choice').forEach(c => c.classList.remove('active'));
+    const chip = grid.querySelector(`[data-value="${val}"]`);
+    if (chip) chip.classList.add('active');
+  });
+  // 更新 ADL 總分顯示
+  let adlSum = 0;
+  document.querySelectorAll('.adl-chip-grid').forEach(g => {
+    const a = g.querySelector('.chip-choice.active');
+    if (a) adlSum += parseInt(a.dataset.value || 0);
+  });
+  const totalSpan = document.getElementById('drawerAdlTotal');
+  if (totalSpan) totalSpan.textContent = adlSum;
+
+  // 藥物 chips & inputs
+  const meds = cv.medications;
+  if (meds) {
+    setActiveChip('chipGroupMestinonDose', meds.mestinon?.dose);
+    setActiveChip('chipGroupMestinonFreq', meds.mestinon?.freq);
+    DOM.inputPrednisoloneDose.value  = (meds.prednisolone?.dose  || '').replace('#', '');
+    DOM.inputPrednisoloneDose2.value = (meds.prednisolone?.dose2 || '').replace('#', '');
+    setActiveChip('chipGroupPrednisoloneFreq', meds.prednisolone?.freq);
+    setActiveChip('chipGroupImuranDose',       meds.imuran?.dose);
+    setActiveChip('chipGroupImuranFreq',       meds.imuran?.freq);
+    setActiveChip('chipGroupTacrolimusDose',   meds.tacrolimus?.dose);
+    setActiveChip('chipGroupTacrolimusFreq',   meds.tacrolimus?.freq);
+    setActiveChip('chipGroupCellceptDose',     meds.cellcept?.dose);
+    setActiveChip('chipGroupCellceptFreq',     meds.cellcept?.freq);
+  }
+  // MGFA PIS / 分期
+  if (cv.mgfaPis?.status) setActiveChip('chipGroupMgfaPis', cv.mgfaPis.status);
+  setActiveChip('chipGroupDrawerMgfaClass', cv.mgfaClass);
+  // 抗體
+  DOM.inputAntibodyDate.value  = cv.antibodyDate  || '';
+  DOM.inputAntibodyIndex.value = cv.antibodyIndex || '';
+  // 備註
+  const notesInput = document.getElementById('inputFollowUpNotes');
+  if (notesInput) notesInput.value = cv.notes || '';
 }
 
 async function saveFollowUpRecord() {
@@ -1548,7 +1641,7 @@ async function saveFollowUpRecord() {
 
   // 更新病患 override（MGFA 分期、處方摘要）
   if (!localOverrides[activePatientId]) localOverrides[activePatientId] = {};
-  localOverrides[activePatientId].mgfaClass = newMgfaClass;
+  if (newMgfaClass) localOverrides[activePatientId].mgfaClass = newMgfaClass; // 未選擇則保留舊值
   localOverrides[activePatientId].medications = medParts.length > 0 ? medParts.join('\n') : '無用藥處方';
 
   // 存入 localStorage

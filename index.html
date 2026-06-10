@@ -154,13 +154,6 @@
           
           <!-- 頂部臨床核心指標與新增隨訪按鈕 -->
           <div style="display:flex; align-items:center; gap:16px; flex-shrink: 0;">
-            <div class="header-clinical-tags">
-              <div class="clinical-badge mgfa" title="MGFA 肌無力臨床分期">
-                <i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i>
-                <span>MGFA 期: <strong id="lblMgfaClass">--</strong></span>
-              </div>
-            </div>
-            
             <button id="btnOpenFollowUpDrawer" class="btn-btn btn-confirm" style="display: flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
               <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
               <span>門診隨訪登錄 (OPD Log)</span>
@@ -452,7 +445,7 @@
           <div class="form-section-title">MGFA Clinical Classification (本次回診分期)</div>
           <div class="drawer-form-block">
             <div class="chip-grid" id="chipGroupDrawerMgfaClass">
-              <div class="chip-choice active" data-value="Class I">Class I</div>
+              <div class="chip-choice" data-value="Class I">Class I</div>
               <div class="chip-choice" data-value="Class IIa">Class IIa</div>
               <div class="chip-choice" data-value="Class IIb">Class IIb</div>
               <div class="chip-choice" data-value="Class IIIa">Class IIIa</div>
@@ -465,12 +458,6 @@
 
           <!-- MG-ADL 現場評估（教授直接點選 0-3 分） -->
           <div class="form-section-title">MG-ADL 現場評估 (教授評分，0 分最好 / 3 分最差)</div>
-
-          <!-- ADL 總分顯示 -->
-          <div style="display:flex; align-items:center; justify-content:space-between; background:var(--primary-light); border-radius:var(--radius-md); padding:10px 16px; border:1px solid rgba(99,102,241,0.25);">
-            <span style="font-size:var(--font-sm); font-weight:700; color:var(--primary);">MG-ADL 總分（滿分 24）</span>
-            <span id="drawerAdlTotal" style="font-size:28px; font-weight:800; color:var(--primary);">0</span>
-          </div>
 
           <!-- 8 項評估 chip 選擇 -->
           <div style="display:flex; flex-direction:column; gap:10px;">
@@ -555,6 +542,12 @@
               </div>
             </div>
 
+          </div>
+
+          <!-- ADL 總分顯示（8 題填完後即可見，緊接備註上方） -->
+          <div style="display:flex; align-items:center; justify-content:space-between; background:var(--primary-light); border-radius:var(--radius-md); padding:10px 16px; border:1px solid rgba(99,102,241,0.25);">
+            <span style="font-size:var(--font-sm); font-weight:700; color:var(--primary);">MG-ADL 總分（滿分 24）</span>
+            <span id="drawerAdlTotal" style="font-size:28px; font-weight:800; color:var(--primary);">0</span>
           </div>
 
           <!-- 備註欄位 -->
