@@ -127,6 +127,20 @@ const MG_ADL_METRICS = {
 // ==========================================
 // 3. 初始化與設定載入邏輯
 // ==========================================
+// iOS Safari flex 高度修正：直接寫入 pixel 高度，繞過多層 flex 繼承計算失敗問題
+function recalcScrollerHeight() {
+  const scroller = document.querySelector('.detail-content-scroller');
+  if (!scroller) return;
+  if (document.getElementById('detailPanelView').style.display === 'none') return;
+  const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  const top = scroller.getBoundingClientRect().top;
+  const h = vh - top;
+  if (h > 50) {
+    scroller.style.flex = 'none';
+    scroller.style.height = h + 'px';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initAccessibility();
   initChipGroups();
@@ -134,6 +148,11 @@ document.addEventListener('DOMContentLoaded', () => {
     loadConfigAndData();
   });
   bindEvents();
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', recalcScrollerHeight);
+  }
+  window.addEventListener('resize', recalcScrollerHeight);
+  window.addEventListener('orientationchange', () => setTimeout(recalcScrollerHeight, 300));
 });
 
 // 無障礙初始化 (字體比例與主題)
@@ -769,6 +788,7 @@ function selectPatient(chartId) {
   if (!patient) return;
   DOM.emptyStateView.style.display = 'none';
   DOM.detailPanelView.style.display = 'flex';
+  requestAnimationFrame(recalcScrollerHeight);
   DOM.patientName.textContent = patient.name;
   DOM.patientGenderAge.textContent = `${patient.gender || '--'} | ${patient.age} 歲`;
   DOM.patientChartId.textContent = patient.rawChartId || '';
