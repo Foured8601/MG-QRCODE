@@ -709,6 +709,9 @@ body {
   height: 280px;
   position: relative;
 }
+.chart-container canvas {
+  touch-action: pan-y;
+}
 
 /* 初診詳細病史卡 */
 .initial-profile-grid {
