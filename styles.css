@@ -323,8 +323,8 @@ body {
 /* 患者列表 */
 .patient-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding: 12px;
   display: flex;
@@ -647,8 +647,8 @@ body {
 /* 詳情雙欄佈局滾動區域 */
 .detail-content-scroller {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding: 32px;
 }
@@ -1128,8 +1128,8 @@ body {
 
 .drawer-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding: 24px;
   display: flex;
