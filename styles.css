@@ -181,7 +181,7 @@ body {
 /* 右側主內容區 */
 .main-viewport {
   flex: 1;
-  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -529,10 +529,15 @@ body {
    ========================================================================== */
 .detail-container {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  height: 100%;
+}
+
+/* Ach 抗體列不參與 flex 高度分配 */
+#achSummaryContainer {
+  flex-shrink: 0;
 }
 
 /* 詳情頂部欄 (Header) */
